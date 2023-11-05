@@ -1,110 +1,85 @@
-# Minimizing Rust Binary Size
+# Réduire la taille d'un binaire Rust
 
-[![GitHub Actions][github-actions-badge]](https://github.com/johnthagen/min-sized-rust/actions)
+[![GitHub Actions][github-actions-badge]](https://github.com/adriantombu/min-sized-rust/actions)
 
-[github-actions-badge]: https://github.com/johnthagen/min-sized-rust/workflows/build/badge.svg
+[github-actions-badge]: https://github.com/adriantombu/min-sized-rust/workflows/build/badge.svg
 
-This repository demonstrates how to minimize the size of a Rust binary.
+Ce dépôt démontre comment minimiser la taille d'un binaire Rust.
 
-By default, Rust optimizes for execution speed, compilation speed, and ease of debugging
-rather than binary size, since for the vast majority of applications this is ideal. But
-for situations where a developer wants to optimize for binary size instead, Rust provides
-mechanisms to accomplish this.
+Par défaut, Rust optimise la vitesse d'exécution, la vitesse de compilation et la facilité de débogage plutôt que la taille des binaires, car pour la grande majorité des applications, c'est l'idéal. Mais pour les situations où un développeur souhaite vraiment optimiser pour la taille du binaire, Rust fournit des mécanismes pour y parvenir.
 
-# Build in Release Mode
+# Compiler en mode release
 
-![Minimum Rust: 1.0](https://img.shields.io/badge/Minimum%20Rust%20Version-1.0-brightgreen.svg)
+![Version Rust Minimale : 1.0](https://img.shields.io/badge/Version%20Rust%20Minimale-1.0-brightgreen.svg)
 
-By default, `cargo build` builds the Rust binary in debug mode. Debug mode disables many
-optimizations, which helps debuggers (and IDEs that run them) provide a better debugging
-experience. Debug binaries can be 30% or more larger than release binaries.
+Par défaut, `cargo build` compile le binaire Rust en mode debug. Le mode débogage désactive de nombreuses optimisations, ce qui aide les debuggers (et les IDE qui les exécutent) à fournir une meilleure expérience de débogage. Les binaires de débogage peuvent être plus lourds de 30% ou plus que les binaires de release.
 
-To minimize binary size, build in release mode:
+Pour minimiser la taille d'un binaire, compilez en mode release ::
 
 ```bash
 $ cargo build --release
 ```
 
-# `strip` Symbols from Binary
+# Retirer les symboles du binaires avec `strip`
 
 ![OS: *nix](https://img.shields.io/badge/OS-*nix-brightgreen.svg)
-![Minimum Rust: 1.59](https://img.shields.io/badge/Minimum%20Rust%20Version-1.59-brightgreen.svg)
+![Version Rust Minimale : 1.59](https://img.shields.io/badge/Version%20Rust%20Minimale-1.59-brightgreen.svg)
 
-By default on Linux and macOS, symbol information is included in the compiled `.elf` file. This
-information is not needed to properly execute the binary.
+Par défaut, sous Linux et macOS, des informations sur les symboles sont incluses dans le fichier `.elf` compilé. Ces informations ne sont pas nécessaires pour exécuter correctement le binaire.
 
-Cargo can be configured to
-[automatically `strip` binaries](https://doc.rust-lang.org/cargo/reference/profiles.html#strip).
-Modify `Cargo.toml` in this way:
+Cargo peut être configuré pour [`strip` automatiquement les binaires](https://doc.rust-lang.org/cargo/reference/profiles.html#strip). Il suffit de modifier `Cargo.toml` de cette manière:
 
 ```toml
 [profile.release]
-strip = true  # Automatically strip symbols from the binary.
+strip = true  # Supprime automatiquement les symboles du binaire.
 ```
 
-**Prior to Rust 1.59**, run [`strip`](https://linux.die.net/man/1/strip) directly on
-the `.elf` file instead:
+**Avant Rust 1.59**, il faut manuellement lancer la commande [`strip`](https://linux.die.net/man/1/strip) sur le fichier `.elf` à la place:
 
 ```bash
 $ strip target/release/min-sized-rust
 ```
 
-# Optimize For Size
+# Optimiser la taille
 
-![Minimum Rust: 1.28](https://img.shields.io/badge/Minimum%20Rust%20Version-1.28-brightgreen.svg)
+![Version Rust Minimale : 1.28](https://img.shields.io/badge/Version%20Rust%20Minimale-1.28-brightgreen.svg)
 
-[Cargo defaults its optimization level to `3` for release builds][cargo-profile],
-which optimizes the binary for **speed**. To instruct Cargo to optimize for minimal binary
-**size**, use the `z` optimization level in 
-[`Cargo.toml`](https://doc.rust-lang.org/cargo/reference/manifest.html):
+[Par défaut, le niveau d'optimisation de Cargo est de `3` pour les versions de développement.][cargo-profile], qui optimise le binaire pour la **vitesse**. Pour demander à Cargo d'optimiser pour une **taille binaire** minimale, utilisez le niveau d'optimisation `z` dans [`Cargo.toml`](https://doc.rust-lang.org/cargo/reference/manifest.html):
 
 [cargo-profile]: https://doc.rust-lang.org/cargo/reference/profiles.html#default-profiles
 
 ```toml
 [profile.release]
-opt-level = "z"  # Optimize for size.
+opt-level = "z"  # Optimiser la taille
 ```
 
-Note that in some cases the `"s"` level may result in a smaller binary than `"z"`, as explained in
-the
-[`opt-level` documentation](https://doc.rust-lang.org/cargo/reference/profiles.html#opt-level):
+Notez que dans certains cas, le niveau `"s"` peut donner lieu à un binaire plus petit que le niveau `"z"`, comme expliqué dans la [documentation `opt-level`](https://doc.rust-lang.org/cargo/reference/profiles.html#opt-level):
 
-> It is recommended to experiment with different levels to find the right balance for your project.
-There may be surprising results, such as ... the `"s"` and `"z"` levels not being necessarily
-smaller. 
+> Il est recommandé d'expérimenter avec différents niveaux pour trouver le bon équilibre pour votre projet. Il peut y avoir des résultats surprenants, tels que ... les niveaux `"s"` et `"z"` ne sont pas nécessairement plus petits.
 
-# Enable Link Time Optimization (LTO)
+# Activer le Link Time Optimization (LTO)
 
-![Minimum Rust: 1.0](https://img.shields.io/badge/Minimum%20Rust%20Version-1.0-brightgreen.svg)
+![Version Rust Minimale : 1.0](https://img.shields.io/badge/Version%20Rust%20Minimale-1.0-brightgreen.svg)
 
-By default, 
-[Cargo instructs compilation units to be compiled and optimized in isolation][cargo-profile]. 
-[LTO](https://llvm.org/docs/LinkTimeOptimization.html) instructs the linker to optimize at the
-link stage. This can, for example, remove dead code and often times reduces binary size.
+Par défault, [Cargo demande aux unités de compilation d'être compilées et optimisées de manière isolée][cargo-profile]. [LTO](https://llvm.org/docs/LinkTimeOptimization.html) demande au linker d'otpimiser à l'étape du link. Cela permet, par exemple, de supprimer le code mort et souvent de réduire la taille des binaires.
 
-Enable LTO in `Cargo.toml`:
+Activer LTO dans `Cargo.toml`:
 
 ```toml
 [profile.release]
 lto = true
 ```
 
-# Remove Jemalloc
+# Supprimer Jemalloc
 
-![Minimum Rust: 1.28](https://img.shields.io/badge/Minimum%20Rust%20Version-1.28-brightgreen.svg)
-![Maximum Rust: 1.31](https://img.shields.io/badge/Maximum%20Rust%20Version-1.31-brightgreen.svg)
+![Version Rust Minimale : 1.28](https://img.shields.io/badge/Version%20Rust%20Minimale-1.28-brightgreen.svg)
+![Version Rust Maximale : 1.31](https://img.shields.io/badge/Version%20Rust%20Maximale-1.31-brightgreen.svg)
 
-As of Rust 1.32, 
-[`jemalloc` is removed by default](https://blog.rust-lang.org/2019/01/17/Rust-1.32.0.html). 
-**If using Rust 1.32 or newer, no action is needed to reduce binary size regarding this 
-feature**.
+A partir de Rust 1.32, [`jemalloc` est supprimé par défault](https://blog.rust-lang.org/2019/01/17/Rust-1.32.0.html). **Si vous utilisez Rust 1.32 ou plus récent, aucune action n'est nécessaire pour réduire la taille des binaires en ce qui concerne cette fonctionnalité**.
 
-**Prior to Rust 1.32**, to improve performance on some platforms Rust bundled
-[jemalloc](https://github.com/jemalloc/jemalloc), an allocator that often 
-outperforms the default system allocator. Bundling jemalloc added around 200KB 
-to the resulting binary, however.
+**Avant Rust 1.32**, pour améliorer les performances sur certaines plateformes, Rust a intégré [jemalloc](https://github.com/jemalloc/jemalloc), un allocateur souvent plus performant que l'allocateur par défaut du système. L'intégration de jemalloc a néanmoins rajouté environ 200KB à la taille finale du binaire.
 
-To remove `jemalloc` on Rust 1.28 - Rust 1.31, add this code to the top of `main.rs`:
+Pour supprimer `jemalloc` sur Rust 1.28 - Rust 1.31, ajoutez ce code en haut de votre fichier `main.rs`:
 
 ```rust
 use std::alloc::System;
@@ -113,171 +88,131 @@ use std::alloc::System;
 static A: System = System;
 ```
 
-# Reduce Parallel Code Generation Units to Increase Optimization
+# Réduire l'exécution parallèle d'unités de génération de code pour améliorer l'optimisation
 
-[By default][cargo-profile], Cargo specifies 16 parallel codegen units for release builds.
-This improves compile times, but prevents some optimizations. 
+[Par défaut][cargo-profile], Cargo utilise 16 unités de génération en parallèle pour les versions de production. Cela améliore les temps de compilation, mais empêche certaines optimisations.
 
-Set this to `1` in `Cargo.toml` to allow for maximum size reduction optimizations:
+Fixez cette valeur à `1` dans `Cargo.toml` pour permettre une optimisation maximale de la taille du binaire :
 
 ```toml
 [profile.release]
 codegen-units = 1
 ```
 
-# Abort on Panic
+# Interrompre en cas de panic
 
-![Minimum Rust: 1.10](https://img.shields.io/badge/Minimum%20Rust%20Version-1.10-brightgreen.svg)
+![Version Rust Minimale : 1.10](https://img.shields.io/badge/Version%20Rust%20Minimale-1.10-brightgreen.svg)
 
-> **Note**: Up to this point, the features discussed to reduce binary size did not have an
-impact on the behaviour of the program (only its execution speed). This feature does
-have an impact on behavior.
+> **Note**: Jusqu'à présent, les options discutées pour réduire la taille des binaires n'ont pas eu d'impact sur le comportement du programme (seulement sur sa vitesse d'exécution). Cette fonctionnalité a un impact sur le comportement.
 
-[By default][cargo-profile], when Rust code encounters a situation when it must call `panic!()`, 
-it unwinds the stack and produces a helpful backtrace. The unwinding code, however, does require 
-extra binary size. `rustc` can be instructed to abort immediately rather than unwind, which 
-removes the need for this extra unwinding code.
+[Par défaut][cargo-profile], lorsque Rust rencontre une situation où il doit appeler `panic!()`, il déroule la pile et produit un message utile. Cela requiert néanmoins du code en plus qui augmente la taille du binaire. Il est possible de configurer `rustc` pour interrompre le programme immédiatement, ce qui enlève ce besoin de code supplémentaire.
 
-Enable this in `Cargo.toml`:
+Activez cela dans `Cargo.toml`:
 
 ```toml
 [profile.release]
 panic = "abort"
 ```
 
-# Remove Location Details
+# Retirer les détails d'emplacement
 
-![Minimum Rust: Nightly](https://img.shields.io/badge/Minimum%20Rust%20Version-nightly-orange.svg)
+![Version Rust Minimale : Nightly](https://img.shields.io/badge/Version%20Rust%20Minimale-nightly-orange.svg)
 
-By default, Rust includes file, line, and column information for `panic!()` and `[track_caller]`
-to provide more useful traceback information. This information requires space in the binary and
-thus increases the size of the compiled binaries.
+Par défaut, Rust inclut les informations de fichier, ligne et colonne dans `panic!()` et `[track_caller]` pour donner des informations utiles. Ces informations occupent de l'espace dans le fichier binaire et augmentent donc la taille des fichiers compilés.
 
-To remove this file, line, and column information, use the unstable
-[`rustc` `-Zlocation-detail`](https://github.com/rust-lang/rfcs/blob/master/text/2091-inline-semantic.md#location-detail-control)
-flag:
+Pour supprimer ces informations de fichier, ligne et colonne, utilisez le flag instable [`rustc` `-Zlocation-detail`](https://github.com/rust-lang/rfcs/blob/master/text/2091-inline-semantic.md#location-detail-control) :
 
 ```bash
 $ RUSTFLAGS="-Zlocation-detail=none" cargo +nightly build --release
 ```
 
-# Optimize `libstd` with `build-std`
+# Optimiser `libstd` avec `build-std`
 
-![Minimum Rust: Nightly](https://img.shields.io/badge/Minimum%20Rust%20Version-nightly-orange.svg)
+![Version Rust Minimale : Nightly](https://img.shields.io/badge/Version%20Rust%20Minimale-nightly-orange.svg)
 
-> **Note**: See also [Xargo](https://github.com/japaric/xargo), the predecessor to `build-std`.
-  [Xargo is currently in maintenance status](https://github.com/japaric/xargo/issues/193).
+> **Note**: Voir également [Xargo](https://github.com/japaric/xargo), qui est le prédécesseur de `build-std`. [Xargo est actuellement en mode maintenance](https://github.com/japaric/xargo/issues/193).
 
-> Example project is located in the [`build_std`](build_std) folder.
+> Un exemple de projet est disponible de le dossier [`build_std`](build_std).
 
-Rust ships pre-built copies of the standard library (`libstd`) with its toolchains. This means
-that developers don't need to build `libstd` every time they build their applications. `libstd`
-is statically linked into the binary instead.
+Rust fournit des copies précompilée de la bibliothèque standard (`libstd`) dans sa suite d'outils. Cela signifie que les développeurs n'ont pas besoin de compiler `libstd` à chaque fois qu'ils créent leurs applications. `libstd` est lié statiquement dans le binaire à la place.
 
-While this is very convenient there are several drawbacks if a developer is trying to
-aggressively optimize for size.
+Bien que cela soit très pratique, il y a plusieurs inconvénients si un développeur essaie d'optimiser la taille de manière agressive.
 
-1. The prebuilt `libstd` is optimized for speed, not size.
+1. La `libstd` précompilée est optimisée pour la vitesse, pas pour la taille.
 
-2. It's not possible to remove portions of `libstd` that are not used in a particular application 
-   (e.g. LTO and panic behaviour).
+2. Il n'est pas possible de retirer des portions de `libstd`  qui ne sont pas utilisé dans une application en particulier (par exemple LTO et le comportement de panic).
 
-This is where [`build-std`](https://doc.rust-lang.org/cargo/reference/unstable.html#build-std) 
-comes in. The `build-std` feature is able to compile `libstd` with your application from the
-source. It does this with the `rust-src` component that `rustup` conveniently provides.
+C'est ici que [`build-std`](https://doc.rust-lang.org/cargo/reference/unstable.html#build-std) se retrouve utile. La feature `build-std` est capable de compiler `libstd` dans votre application depuis la source. Il le fait avec le composant `rust-src` que `rustup` fournit commodément.
 
-Install the appropriate toolchain and the `rust-src` component:
+Installez la suite d'outils appropriée et le composant `rust-src` :
 
 ```bash
 $ rustup toolchain install nightly
 $ rustup component add rust-src --toolchain nightly
 ```
 
-Build using `build-std`:
+Compiler en utilisant `build-std`:
 
 ```bash
-# Find your host's target triple. 
+# Afficher le triplet de votre machine 
 $ rustc -vV
 ...
 host: x86_64-apple-darwin
 
-# Use that target triple when building with build-std.
-# Add the =std,panic_abort to the option to make panic = "abort" Cargo.toml option work.
-# See: https://github.com/rust-lang/wg-cargo-std-aware/issues/56
+# Utilisez ce triplet quand vous compilez avec build-std.
+# Ajoutez l'option =std,panic_abort pour permettre à l'option panic = "abort" de Cargo.toml de fonctionner.
+# Voir: https://github.com/rust-lang/wg-cargo-std-aware/issues/56
 $ RUSTFLAGS="-Zlocation-detail=none" cargo +nightly build -Z build-std=std,panic_abort --target x86_64-apple-darwin --release
 ```
 
-On macOS, the final stripped binary size is reduced to 51KB.
+Sur macOS, la taille finale du binaire est réduite à 51 Ko.
 
-# Remove `panic` String Formatting with `panic_immediate_abort`
+# Supprimer le formatting des chaînes de caractères de `panic` avec `panic_immediate_abort`
 
-![Minimum Rust: Nightly](https://img.shields.io/badge/Minimum%20Rust%20Version-nightly-orange.svg)
+![Version Rust Minimale : Nightly](https://img.shields.io/badge/Version%20Rust%20Minimale-nightly-orange.svg)
 
-Even if `panic = "abort"` is specified in `Cargo.toml`, `rustc` will still include panic strings
-and formatting code in final binary by default. 
-[An unstable `panic_immediate_abort` feature](https://github.com/rust-lang/rust/pull/55011)
-has been merged into the `nightly` `rustc` compiler to address this.
+Même si `panic = "abort"` est spécifié dans `Cargo.toml`, `rustc` il inclut toujours par défaut les chaînes de caractère et le code de formatage du panic dans le binaire final. [Une feature instable `panic_immediate_abort`](https://github.com/rust-lang/rust/pull/55011) a été mergée dans le compileur `nightly` `rustc` pour addresser cela.
 
-To use this, repeat the instructions above to use `build-std`, but also pass the following
-[`-Z build-std-features=panic_immediate_abort`](https://doc.rust-lang.org/cargo/reference/unstable.html#build-std-features)
-option.
+Pour l'utiliser, répétez les instructions au dessus pour utiliser `build-std`, mais passez également l'option suivante [`-Z build-std-features=panic_immediate_abort`](https://doc.rust-lang.org/cargo/reference/unstable.html#build-std-features).
 
 ```bash
 $ cargo +nightly build -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort \
     --target x86_64-apple-darwin --release
 ```
 
-On macOS, the final stripped binary size is reduced to 30KB.
+Sur macOS, la taille finale du binaire est réduite à 30 Ko.
 
-# Remove `core::fmt` with `#![no_main]` and Careful Usage of `libstd`
+# Supprimer `core::fmt` avec `#![no_main]` et un usage prudent de `libstd`
 
-![Minimum Rust: Nightly](https://img.shields.io/badge/Minimum%20Rust%20Version-nightly-orange.svg)
+![Version Rust Minimale : Nightly](https://img.shields.io/badge/Version%20Rust%20Minimale-nightly-orange.svg)
 
-> Example project is located in the [`no_main`](no_main) folder.
+> Un exemple de projet est disponible de le dossier [`no_main`](no_main).
 
-> This section was contributed in part by [@vi](https://github.com/vi)
+> Cette section est en partie possible grâce à [@vi](https://github.com/vi)
  
-Up until this point, we haven't restricted what utilities we used from `libstd`. In this section
-we will restrict our usage of `libstd` in order to reduce binary size further.
+Jusqu'à présent, nous n'avons pas restreint les utilitaires de `libstd` que nous utilisions. Dans cette section, nous allons restreindre notre utilisation de `libstd` afin de réduire encore plus la taille des binaires.
 
-If you want an executable smaller than 20 kilobytes, Rust's string formatting code, 
-[`core::fmt`](https://doc.rust-lang.org/core/fmt/index.html) must 
-be removed. `panic_immediate_abort` only removes some usages of this code. There is a lot of other 
-code that uses formatting in some cases. That includes Rust's "pre-main" code in `libstd`.
+Si vous voulez un exécutable de moins de 20 kilo-octets, le code de formatage des chaînes de Rust, [`core::fmt`](https://doc.rust-lang.org/core/fmt/index.html) doit être supprimé. `panic_immediate_abort` ne supprime que certaines utilisations de ce code. Il y a beaucoup d'autres codes qui utilisent le formatage dans certains cas. Cela inclut le code "pre-main" de Rust dans `libstd`.
 
-By using a C entry point (by adding the `#![no_main]` attribute) , managing stdio manually, and 
-carefully analyzing which chunks of code you or your dependencies include, you can sometimes 
-make use of `libstd` while avoiding bloated `core::fmt`.
+En utilisant un point d'entrée C (en ajoutant l'attribut `# ![no_main]`), en gérant stdio manuellement, et en analysant soigneusement les morceaux de code que vous ou vos dépendances incluez, vous pouvez parfois utiliser `libstd` tout en évitant `core::fmt`.
 
-Expect the code to be hacky and unportable, with more `unsafe{}`s than usual. It feels like 
-`no_std`, but with `libstd`.
+Il faut s'attendre à ce que le code soit plus complexe et non portable, avec plus de `unsafe{}` que d'habitude. Cela ressemble à `no_std`, mais avec `libstd`.
 
-Start with an empty executable, ensure 
-[`xargo bloat --release --target=...`](https://github.com/RazrFalcon/cargo-bloat) contains no 
-`core::fmt` or something about padding. Add (uncomment) a little bit. See that `xargo bloat` now 
-reports drastically more. Review source code that you've just added. Probably some external crate or 
-a new `libstd` function is used. Recurse into that with your review process
-(it requires `[replace]` Cargo dependencies and maybe digging in `libstd`), find out why it 
-weighs more than it should. Choose alternative way or patch dependencies to avoid unnecessary
-features. Uncomment a bit more of your code, debug exploded size with `xargo bloat` and so on.
+Commencez avec un exécutable vide, assurez-vous que [`xargo bloat --release --target=...`](https://github.com/RazrFalcon/cargo-bloat) ne contient pas `core::fmt` ou quelque chose relatif au padding. Ajoutez (ou décommentez) un peu de code et confirmez que `xargo bloat` relève beaucoup plus d'information désormais. Examinez le code source que vous venez d'ajouter. Il est probable qu'une librairie externe ou une nouvelle fonction `libstd` est utilisée. Tenez-en compte dans votre processus d'évaluation (cela vous force à utiliser la section `[replace]` et peut-être chercher dans `libstd`) et essayez de comprendre pourquoi cela prend plus de place que ça ne devrait. Choisisez une alternative ou patchez les dépendances pour éviter des features non nécessaires. Décommentez un peu plus le code, et continuez à débugger avec `xargo bloat`.
 
-On macOS, the final stripped binary is reduced to 8KB.
+Sur macOS, la taille finale du binaire est réduite à 8 Ko.
 
-# Removing `libstd` with `#![no_std]`
+# Supprimer `libstd` avec `#![no_std]`
 
-![Minimum Rust: 1.30](https://img.shields.io/badge/Minimum%20Rust%20Version-1.30-brightgreen.svg)
+![Version Rust Minimale : 1.30](https://img.shields.io/badge/Version%20Rust%20Minimale-1.30-brightgreen.svg)
 
-> Example project is located in the [`no_std`](no_std) folder.
+> Un exemple de projet est disponible de le dossier [`no_std`](no_std).
 
-Up until this point, our application was using the Rust standard library, `libstd`. `libstd`
-provides many convenient, well tested cross-platform APIs and data types. But if a user wants
-to reduce binary size to an equivalent C program size, it is possible to depend only on `libc`.
+Jusqu'à présent, notre application utilisait la bibliothèque standard Rust, `libstd`. `libstd` fournit de nombreuses APIs cross-plateforme pratique et bien testées. Mais si un utilisateur veut réduire la taille d'un programme binaire à une taille équivalente à celle d'un programme C, il est possible de ne dépendre que de `libc`.
 
-It's important to understand that there are many drawbacks to this approach. For one, you'll
-likely need to write a lot of `unsafe` code and lose access to a majority of Rust crates
-that depend on `libstd`. Nevertheless, it is one (albeit extreme) option to reducing binary size.
+Il est important de comprendre que cette approche présente de nombreux inconvénients. Par exemple, vous devrez probablement écrire beaucoup de code `unsafe` et perdre l'accès à la majorité des crates Rust qui dépendent de `libstd`. Néanmoins, il s'agit d'une option (bien qu'extrême) pour réduire la taille des binaires.
 
-A `strip`ed binary built this way is around 8KB.
+Un binaire réduit de cette manière est autour de 8 Ko.
 
 ```rust
 #![no_std]
@@ -287,7 +222,7 @@ extern crate libc;
 
 #[no_mangle]
 pub extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
-    // Since we are passing a C string the final null character is mandatory.
+    // Puisque nous transmettons une chaîne de caractères C, le caractère nul final est obligatoire.
     const HELLO: &'static str = "Hello, world!\n\0";
     unsafe {
         libc::printf(HELLO.as_ptr() as *const _);
@@ -301,44 +236,35 @@ fn my_panic(_info: &core::panic::PanicInfo) -> ! {
 }
 ```
 
-# Compress the binary
+# Compresser le binaire
 
-Up until this point, all size-reducing techniques were Rust-specific. This section describes
-a language-agnostic binary packing tool that is an option to reduce binary size further.
+Jusqu'à présent, toutes les techniques de réduction de la taille étaient spécifiques à Rust. Cette section décrit un outil de compression agnostique au language qui permet de réduire davantage la taille des binaires.
 
-[UPX](https://github.com/upx/upx) is a powerful tool for creating a self contained, compressed
-binary with no addition runtime requirements.  It claims to typically reduce binary size by 50-70%,
-but the actual result depends on your executable.
+[UPX](https://github.com/upx/upx) est un outil puissant permettant de créer un fichier binaire autonome et compressé sans exigence supplémentaire en matière d'exécution. Il prétend réduire la taille des binaires de 50 à 70 %, mais le résultat réel dépend de votre exécutable.
 
 ```bash
 $ upx --best --lzma target/release/min-sized-rust
 ```
 
-It should be noted that there have been times that UPX-packed binaries have flagged
-heuristic-based anti-virus software because malware often uses UPX.
+Il convient de noter qu'il est arrivé que des binaires contenant des fichiers UPX soient détectés par des logiciels antivirus basés sur une méthode heuristique, car les logiciels malveillants utilisent souvent UPX.
 
-# Tools
+# Outils
 
-- [`cargo-bloat`](https://github.com/RazrFalcon/cargo-bloat) - Find out what takes most of the 
-  space in your executable.
-- [`cargo-unused-features`](https://github.com/TimonPost/cargo-unused-features) - Find and prune
-  enabled but potentially unused feature flags from your project.
-- [`momo`](https://github.com/llogiq/momo) - `proc_macro` crate to help keeping the code footprint
-  of generic methods in check.
-- [Twiggy](https://rustwasm.github.io/twiggy/index.html) - A code size profiler for Wasm.
+- [`cargo-bloat`](https://github.com/RazrFalcon/cargo-bloat) - Déterminez ce qui occupe le plus d'espace dans votre exécutable.
+- [`cargo-unused-features`](https://github.com/TimonPost/cargo-unused-features) - Trouvez et éliminez de votre projet les features activées mais potentiellement inutilisées.
+- [`momo`](https://github.com/llogiq/momo) - `proc_macro`  librairie utilisée pour limiter l'empreinte des méthodes génériques dans le code.
+- [Twiggy](https://rustwasm.github.io/twiggy/index.html) - Un profileur de taille de code pour Wasm.
 
-# Containers
+# Conteneurs
 
-Sometimes it's advantageous to deploy Rust into containers 
-(e.g. [Docker](https://www.docker.com/)). There are several great existing resources to help 
-create minimum sized container images that run Rust binaries.
+Il est parfois avantageux de déployer Rust dans un container (par exemple [Docker](https://www.docker.com/)). Il existe plusieurs ressources intéressantes pour aider à créer des images de conteneurs de taille minimale qui exécutent les binaires Rust.
 
-- [Official `rust:alpine` image](https://hub.docker.com/_/rust)
+- [L'image `rust:alpine` officielle](https://hub.docker.com/_/rust)
 - [mini-docker-rust](https://github.com/kpcyrd/mini-docker-rust)
 - [muslrust](https://github.com/clux/muslrust)
-- [docker-slim](https://github.com/docker-slim/docker-slim) - Minify Docker images
+- [docker-slim](https://github.com/docker-slim/docker-slim) - Minifier les images Docker
 
-# References
+# Références
 
 - [151-byte static Linux binary in Rust - 2015][151-byte-static-linux-binary]
 - [Why is a Rust executable large? - 2016][why-rust-binary-large]
@@ -353,7 +279,7 @@ create minimum sized container images that run Rust binaries.
 - [Tighten rust’s belt: shrinking embedded Rust binaries - 2022][tighten-rusts-belt]
 - [Avoiding allocations in Rust to shrink Wasm modules - 2022][avoiding-allocations-shrink-wasm]
 - [A very small Rust binary indeed - 2022][a-very-small-rust-binary]
-- [`min-sized-rust-windows`][min-sized-rust-windows] - Windows-specific tricks to reduce binary size
+- [`min-sized-rust-windows`][min-sized-rust-windows] - Astuces spécifiques à Windows pour réduire la taille des binaires
 - [Shrinking `.wasm` Code Size][shrinking-wasm-code-size]
 
 [151-byte-static-linux-binary]: https://mainisusuallyafunction.blogspot.com/2015/01/151-byte-static-linux-binary-in-rust.html
